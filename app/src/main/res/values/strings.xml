@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">APKM Installer</string>
+    <string name="home_title">APKM Installer</string>
+    <string name="home_subtitle">Install split APKs from APK Mirror</string>
+    <string name="home_cta">Open .apkm file</string>
+    <string name="home_drop_hint">Tap to browse or open a .apkm file from your file manager</string>
+    <string name="detail_title">Package Details</string>
+    <string name="detail_package">Package</string>
+    <string name="detail_version">Version</string>
+    <string name="detail_size">Size</string>
+    <string name="detail_splits">Split APKs</string>
+    <string name="detail_permissions">Permissions</string>
+    <string name="detail_install">Install</string>
+    <string name="install_title">Installing</string>
+    <string name="install_step_extracting">Extracting package…</string>
+    <string name="install_step_verifying">Verifying APKs…</string>
+    <string name="install_step_installing">Installing…</string>
+    <string name="install_success">Installed successfully</string>
+    <string name="install_failure">Installation failed</string>
+    <string name="install_open_app">Open App</string>
+    <string name="install_done">Done</string>
+    <string name="install_retry">Retry</string>
+    <string name="error_invalid_apkm">The file does not appear to be a valid .apkm package</string>
+    <string name="cd_app_icon">App icon</string>
+</resources>
