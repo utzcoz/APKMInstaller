@@ -1,0 +1,112 @@
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+# Rule sets: only configure overrides from the default. buildUponDefaultConfig: true handles the rest.
+
+complexity:
+  active: true
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 20  # File parsers and data-layer methods are inherently complex
+  NestedBlockDepth:
+    active: true
+    threshold: 6  # Zip-parsing code uses stream nesting
+  LongMethod:
+    # Compose @Composable functions are inherently long
+    active: true
+    threshold: 80
+  LongParameterList:
+    active: true
+    functionThreshold: 8
+    constructorThreshold: 8
+    ignoreAnnotated:
+      - "Composable"
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 20
+    thresholdInClasses: 20
+    thresholdInObjects: 20
+    thresholdInInterfaces: 15
+    thresholdInEnums: 10
+    ignoreAnnotated:
+      - "Preview"
+
+style:
+  active: true
+  MagicNumber:
+    # UI code uses numeric literals heavily (dp, sp values) and Color.kt defines named palette constants
+    ignoreAnnotated:
+      - "Composable"
+      - "Preview"
+    ignoreNumbers:
+      - "-1"
+      - "0"
+      - "1"
+      - "2"
+      - "100"
+    ignoreConstantDeclaration: true
+    ignoreEnums: true
+    ignoreRanges: true
+    ignoreExtensionFunctions: true
+    # Exclude Color.kt — hex ARGB literals are inherently "magic" but self-documenting
+    excludes: ['**/theme/Color.kt']
+  MaxLineLength:
+    active: true
+    maxLineLength: 140
+  WildcardImport:
+    active: false  # Compose imports are idiomatic wildcards
+  ReturnCount:
+    active: true
+    max: 4  # BroadcastReceivers and when-expressions legitimately need multiple returns
+  ThrowsCount:
+    active: true
+    max: 4  # File parsers legitimately throw multiple exceptions
+  UnusedPrivateMember:
+    active: true
+    # @Preview composables are used by Android Studio's design tools, not dead code
+    ignoreAnnotated:
+      - "Preview"
+
+naming:
+  active: true
+  FunctionNaming:
+    active: true
+    # Allow PascalCase for @Composable functions (they are treated as UI elements)
+    functionPattern: "([a-z][a-zA-Z0-9]*)|([A-Z][a-zA-Z0-9]*)"
+    ignoreAnnotated:
+      - "Composable"
+
+potential-bugs:
+  active: true
+
+empty-blocks:
+  active: true
+
+comments:
+  active: true
+  UndocumentedPublicClass:
+    active: false
+  UndocumentedPublicFunction:
+    active: false
+  UndocumentedPublicProperty:
+    active: false
+
+coroutines:
+  active: true
+  GlobalCoroutineUsage:
+    active: true
+  InjectDispatcher:
+    active: false  # ViewModels use viewModelScope directly
+
+exceptions:
+  active: true
+  TooGenericExceptionCaught:
+    active: true
+    exceptionNames:
+      - "Error"
+      - "NullPointerException"
+      - "RuntimeException"

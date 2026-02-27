@@ -241,10 +241,13 @@ private fun MetaRow(label: String, value: String) {
     }
 }
 
+private const val BYTES_IN_KB = 1024L
+private const val BYTES_IN_MB = 1024L * 1024L
+
 private fun formatBytes(bytes: Long): String = when {
-    bytes < 1024 -> "$bytes B"
-    bytes < 1024 * 1024 -> "${bytes / 1024} KB"
-    else -> "${"%.1f".format(bytes / (1024.0 * 1024.0))} MB"
+    bytes < BYTES_IN_KB -> "$bytes B"
+    bytes < BYTES_IN_MB -> "${bytes / BYTES_IN_KB} KB"
+    else -> "${"%.1f".format(bytes / BYTES_IN_MB.toDouble())} MB"
 }
 
 @Suppress("UnusedPrivateMember")

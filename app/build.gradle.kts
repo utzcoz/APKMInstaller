@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -28,6 +29,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Use the standard Android debug keystore so release builds are signable
+            // without extra secrets. Not suitable for Play Store publishing.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -67,6 +71,13 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
+}
+
+detekt {
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+    buildUponDefaultConfig = true
+    autoCorrect = false
+    source.setFrom("src/main/kotlin", "src/test/kotlin", "src/androidTest/kotlin")
 }
 
 dependencies {

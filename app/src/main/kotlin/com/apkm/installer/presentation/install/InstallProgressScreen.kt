@@ -159,7 +159,8 @@ private fun ProgressContent(state: InstallState, appName: String) {
 @Composable
 private fun StepIndicators(state: InstallState) {
     val steps = listOf(
-        R.string.install_step_extracting to (state is InstallState.Verifying || state is InstallState.Installing || state is InstallState.Success),
+        R.string.install_step_extracting to
+            (state is InstallState.Verifying || state is InstallState.Installing || state is InstallState.Success),
         R.string.install_step_verifying to (state is InstallState.Installing || state is InstallState.Success),
         R.string.install_step_installing to (state is InstallState.Success),
     )

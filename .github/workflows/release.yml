@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write  # Required to create a GitHub Release
+
+jobs:
+  release:
+    name: Build & publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for release notes)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # All tags and history needed for generate_release_notes
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed release APK
+        # Signed with the standard Android debug keystore (auto-created by the SDK).
+        # The debug.keystore is always present on GitHub-hosted runners after the
+        # Android SDK is set up, and is also created locally by Android Studio.
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Rename APK with version
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk \
+             dist/APKMInstaller-${{ steps.version.outputs.version }}.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # GitHub automatically generates release notes by comparing this tag
+          # to the previous tag and listing all commits in between.
+          # Customise sections in .github/release.yml
+          generate_release_notes: true
+          files: dist/APKMInstaller-${{ steps.version.outputs.version }}.apk
+          fail_on_unmatched_files: true

@@ -1,5 +1,7 @@
 # APKM Installer
 
+[![CI](https://github.com/your-org/APKMInstaller/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/APKMInstaller/actions/workflows/ci.yml)
+
 A modern, ads-free Android app for installing `.apkm` split-APK packages downloaded from [APK Mirror](https://www.apkmirror.com/).
 
 ## Features
@@ -50,7 +52,40 @@ The app extracts all APKs to a temporary cache directory and installs them toget
 ./gradlew testDebugUnitTest
 ```
 
+### Kotlin static analysis (Detekt)
+```bash
+./gradlew detekt
+```
+Report: `app/build/reports/detekt/detekt.html`
+
+### Android Lint
+```bash
+./gradlew lintDebug
+```
+
 ### Instrumentation tests (Gradle Managed Device — pixel6api34 / aosp_atd / API 34)
 ```bash
 ./gradlew pixel6api34DebugAndroidTest
 ```
+
+## CI / CD
+
+### Continuous Integration
+Every push to `main` and every pull request runs four parallel jobs:
+- **Build** — compiles the debug APK
+- **Lint** — Android Lint checks
+- **Detekt** — Kotlin static analysis
+- **Unit tests** — runs all JVM unit tests
+
+### Releasing a new version
+1. Update `versionName` and `versionCode` in `app/build.gradle.kts`
+2. Commit the change: `git commit -m "chore: bump version to 1.2.0"`
+3. Push a tag: `git tag v1.2.0 && git push origin v1.2.0`
+
+The release workflow will automatically:
+- Build a signed APK (using the Android debug keystore — no secrets needed)
+- Create a GitHub Release named `v1.2.0`
+- **Auto-generate release notes** from all commits between `v1.2.0` and the previous tag
+- Attach the APK as a downloadable asset
+
+Release note categories are configured in [`.github/release.yml`](.github/release.yml).

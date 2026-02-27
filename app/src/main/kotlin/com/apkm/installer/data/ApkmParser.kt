@@ -50,9 +50,7 @@ class ApkmParser @Inject constructor(
                         FileOutputStream(outFile).use { out ->
                             val written = zip.copyTo(out, bufferSize = 65_536)
                             totalBytes += written
-                            if (totalBytes > MAX_EXTRACT_BYTES) {
-                                throw IllegalArgumentException("Package exceeds size limit")
-                            }
+                            require(totalBytes <= MAX_EXTRACT_BYTES) { "Package exceeds size limit" }
                         }
                         apkFiles += outFile
                     }
@@ -64,7 +62,7 @@ class ApkmParser @Inject constructor(
 
         if (apkFiles.isEmpty()) {
             sessionDir.deleteRecursively()
-            throw IllegalArgumentException("No APK files found inside the .apkm archive")
+            require(false) { "No APK files found inside the .apkm archive" }
         }
 
         // Sort so base.apk is always first
