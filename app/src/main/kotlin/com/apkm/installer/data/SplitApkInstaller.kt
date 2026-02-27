@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.os.Build
+import android.os.SystemClock
 import android.util.Log
 import com.apkm.installer.domain.model.InstallState
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -43,18 +44,23 @@ class SplitApkInstaller @Inject constructor(
         params.setAppPackageName(packageName)
 
         val sessionId = installer.createSession(params)
-        Log.d(TAG, "Created session $sessionId for $packageName")
+        Log.i(TAG, "▶ install START  pkg=$packageName  apks=${apkPaths.size}  session=$sessionId")
+        val wallStart = SystemClock.elapsedRealtime()
 
         try {
             installer.openSession(sessionId).use { session ->
                 apkPaths.forEachIndexed { index, path ->
                     val file = File(path)
+                    val sizeMb = "%.2f".format(file.length() / 1_048_576.0)
+                    Log.d(TAG, "  writing split_$index.apk  path=$path  size=${sizeMb}MB")
+                    val writeStart = SystemClock.elapsedRealtime()
                     FileInputStream(file).use { input ->
                         session.openWrite("split_$index.apk", 0, file.length()).use { out ->
                             input.copyTo(out, bufferSize = 1024 * 1024)
                             session.fsync(out)
                         }
                     }
+                    Log.d(TAG, "  split_$index.apk written in ${SystemClock.elapsedRealtime() - writeStart}ms")
                 }
 
                 val intent = Intent(INSTALL_ACTION).apply {
@@ -66,14 +72,15 @@ class SplitApkInstaller @Inject constructor(
                     PendingIntent.FLAG_UPDATE_CURRENT
                 }
                 val pendingIntent = PendingIntent.getBroadcast(context, sessionId, intent, flags)
+                Log.i(TAG, "  committing session $sessionId  elapsed=${SystemClock.elapsedRealtime() - wallStart}ms")
                 session.commit(pendingIntent.intentSender)
-                Log.d(TAG, "Committed session $sessionId")
+                Log.i(TAG, "  session committed  elapsed=${SystemClock.elapsedRealtime() - wallStart}ms  (Play Protect scan starts now)")
                 // Signal the UI that streaming is done and the system is now verifying
                 // (Play Protect cloud scan on GMS devices can take 30+ seconds here).
                 resultChannel.trySend(InstallState.Finalizing)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Session failed: ${e.message}", e)
+            Log.e(TAG, "✖ session $sessionId failed after ${SystemClock.elapsedRealtime() - wallStart}ms: ${e.message}", e)
             installer.abandonSession(sessionId)
             resultChannel.send(InstallState.Failure(e.message ?: "Unknown error"))
         }
@@ -98,8 +105,19 @@ class InstallResultReceiver : BroadcastReceiver() {
         )
         val packageName = intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME) ?: ""
         val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: ""
-
-        Log.d(TAG, "Install result: status=$status pkg=$packageName msg=$message")
+        val statusName = when (status) {
+            PackageInstaller.STATUS_SUCCESS -> "SUCCESS"
+            PackageInstaller.STATUS_PENDING_USER_ACTION -> "PENDING_USER_ACTION"
+            PackageInstaller.STATUS_FAILURE -> "FAILURE"
+            PackageInstaller.STATUS_FAILURE_ABORTED -> "FAILURE_ABORTED"
+            PackageInstaller.STATUS_FAILURE_BLOCKED -> "FAILURE_BLOCKED"
+            PackageInstaller.STATUS_FAILURE_CONFLICT -> "FAILURE_CONFLICT"
+            PackageInstaller.STATUS_FAILURE_INCOMPATIBLE -> "FAILURE_INCOMPATIBLE"
+            PackageInstaller.STATUS_FAILURE_INVALID -> "FAILURE_INVALID"
+            PackageInstaller.STATUS_FAILURE_STORAGE -> "FAILURE_STORAGE"
+            else -> "UNKNOWN($status)"
+        }
+        Log.i(TAG, "◀ receiver  status=$statusName  pkg=$packageName  msg=${message.ifBlank { "(none)" }}")
 
         val installer = (context.applicationContext as? com.apkm.installer.ApkMInstallerApp)
             ?.splitApkInstaller ?: return
