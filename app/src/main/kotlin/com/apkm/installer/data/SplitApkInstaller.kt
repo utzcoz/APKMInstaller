@@ -51,7 +51,7 @@ class SplitApkInstaller @Inject constructor(
                     val file = File(path)
                     FileInputStream(file).use { input ->
                         session.openWrite("split_$index.apk", 0, file.length()).use { out ->
-                            input.copyTo(out, bufferSize = 65_536)
+                            input.copyTo(out, bufferSize = 1024 * 1024)
                             session.fsync(out)
                         }
                     }
@@ -68,6 +68,9 @@ class SplitApkInstaller @Inject constructor(
                 val pendingIntent = PendingIntent.getBroadcast(context, sessionId, intent, flags)
                 session.commit(pendingIntent.intentSender)
                 Log.d(TAG, "Committed session $sessionId")
+                // Signal the UI that streaming is done and the system is now verifying
+                // (Play Protect cloud scan on GMS devices can take 30+ seconds here).
+                resultChannel.trySend(InstallState.Finalizing)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Session failed: ${e.message}", e)

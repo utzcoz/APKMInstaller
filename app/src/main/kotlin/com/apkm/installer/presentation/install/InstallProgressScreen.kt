@@ -119,6 +119,7 @@ private fun ProgressContent(state: InstallState, appName: String) {
         InstallState.Extracting -> stringResource(R.string.install_step_extracting)
         InstallState.Verifying -> stringResource(R.string.install_step_verifying)
         InstallState.Installing -> stringResource(R.string.install_step_installing)
+        InstallState.Finalizing -> stringResource(R.string.install_step_finalizing)
         InstallState.PendingUserAction -> stringResource(R.string.install_step_pending_user_action)
         else -> stringResource(R.string.install_title)
     }

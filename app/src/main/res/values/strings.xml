@@ -20,6 +20,7 @@
     <string name="install_step_extracting">Extracting package…</string>
     <string name="install_step_verifying">Verifying APKs…</string>
     <string name="install_step_installing">Installing…</string>
+    <string name="install_step_finalizing">Verifying with Play Protect…</string>
     <string name="install_step_pending_user_action">Waiting for your confirmation…</string>
     <string name="install_success">Installed successfully</string>
     <string name="install_failure">Installation failed</string>
