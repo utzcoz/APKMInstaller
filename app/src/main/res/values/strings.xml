@@ -27,6 +27,7 @@
     <string name="install_open_app">Open App</string>
     <string name="install_done">Done</string>
     <string name="install_retry">Retry</string>
+    <string name="install_cancel">Cancel</string>
     <string name="error_invalid_apkm">The file does not appear to be a valid .apkm package</string>
     <string name="cd_app_icon">App icon</string>
 </resources>

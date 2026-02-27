@@ -6,6 +6,7 @@ import com.apkm.installer.domain.model.ApkmPackageInfo
 import com.apkm.installer.domain.model.InstallState
 import com.apkm.installer.domain.usecase.InstallPackageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -19,13 +20,20 @@ class InstallViewModel @Inject constructor(
     private val _installState = MutableStateFlow<InstallState>(InstallState.Idle)
     val installState: StateFlow<InstallState> = _installState
 
+    private var installJob: Job? = null
+
     fun install(info: ApkmPackageInfo) {
         if (_installState.value != InstallState.Idle) return
-        viewModelScope.launch {
+        installJob = viewModelScope.launch {
             installPackageUseCase(info).collect { state ->
                 _installState.value = state
             }
         }
+    }
+
+    fun cancel() {
+        installJob?.cancel()
+        _installState.value = InstallState.Idle
     }
 
     fun reset() {

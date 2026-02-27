@@ -43,6 +43,7 @@ class InstallProgressScreenTest {
                     packageName = "com.my.app",
                     onDone = {},
                     onRetry = {},
+                    onCancel = {},
                 )
             }
         }
@@ -59,6 +60,7 @@ class InstallProgressScreenTest {
                     packageName = "com.my.app",
                     onDone = {},
                     onRetry = {},
+                    onCancel = {},
                 )
             }
         }
@@ -75,6 +77,7 @@ class InstallProgressScreenTest {
                     packageName = "com.my.app",
                     onDone = {},
                     onRetry = {},
+                    onCancel = {},
                 )
             }
         }
@@ -91,6 +94,7 @@ class InstallProgressScreenTest {
                     packageName = "com.my.app",
                     onDone = {},
                     onRetry = {},
+                    onCancel = {},
                 )
             }
         }

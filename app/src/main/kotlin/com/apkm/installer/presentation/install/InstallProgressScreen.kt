@@ -69,6 +69,10 @@ fun InstallProgressScreen(
                 viewModel.reset()
                 onRetry()
             },
+            onCancel = {
+                viewModel.cancel()
+                onRetry()
+            },
         )
     }
 }
@@ -80,6 +84,7 @@ fun InstallContent(
     packageName: String,
     onDone: () -> Unit,
     onRetry: () -> Unit,
+    onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -92,14 +97,14 @@ fun InstallContent(
         when (state) {
             is InstallState.Success -> SuccessContent(appName, packageName, onDone)
             is InstallState.Failure -> FailureContent(state.message, onRetry)
-            else -> ProgressContent(state, appName)
+            else -> ProgressContent(state, appName, onCancel)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ProgressContent(state: InstallState, appName: String) {
+private fun ProgressContent(state: InstallState, appName: String, onCancel: () -> Unit) {
     if (state == InstallState.PendingUserAction) {
         // System is showing a confirmation dialog — swap spinner for an attention icon so
         // the user knows they need to interact with the system prompt (not this app).
@@ -142,6 +147,14 @@ private fun ProgressContent(state: InstallState, appName: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.testTag(INSTALL_STATUS_TAG),
     )
+
+    // Show Cancel during Finalizing so the user isn't stuck waiting for Play Protect.
+    if (state == InstallState.Finalizing || state == InstallState.PendingUserAction) {
+        Spacer(Modifier.height(32.dp))
+        OutlinedButton(onClick = onCancel) {
+            Text(stringResource(R.string.install_cancel))
+        }
+    }
 }
 
 @Composable
@@ -252,6 +265,7 @@ private fun ProgressPreview() {
                 packageName = "com.example.app",
                 onDone = {},
                 onRetry = {},
+                onCancel = {},
             )
         }
     }
@@ -268,6 +282,7 @@ private fun SuccessPreview() {
                 packageName = "com.example.app",
                 onDone = {},
                 onRetry = {},
+                onCancel = {},
             )
         }
     }
