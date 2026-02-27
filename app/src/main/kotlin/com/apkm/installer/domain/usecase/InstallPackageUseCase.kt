@@ -32,10 +32,15 @@ class InstallPackageUseCase @Inject constructor(
         emit(InstallState.Installing)
         installer.install(info.packageName, info.apkFiles)
 
-        // Wait for the result broadcast forwarded by InstallResultReceiver
-        val result = withTimeout(INSTALL_TIMEOUT_MS) {
-            installer.resultChannel.receive()
+        // Receive states until a terminal one arrives.  PendingUserAction may appear first when
+        // the system (e.g. Play Protect on GMS emulators) requires user confirmation before the
+        // install completes; we surface it in the UI instead of keeping an indefinite spinner.
+        withTimeout(INSTALL_TIMEOUT_MS) {
+            while (true) {
+                val state = installer.resultChannel.receive()
+                emit(state)
+                if (state is InstallState.Success || state is InstallState.Failure) break
+            }
         }
-        emit(result)
     }.flowOn(Dispatchers.IO)
 }

@@ -1,6 +1,10 @@
 package com.apkm.installer.presentation.detail
 
+import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,15 +39,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -69,6 +79,51 @@ fun PackageDetailScreen(
     LaunchedEffect(uri) { viewModel.loadPackage(uri) }
 
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    // Holds the package info for a pending install; non-null while the permission dialog is shown.
+    var pendingInstall by remember { mutableStateOf<ApkmPackageInfo?>(null) }
+
+    // Launcher that returns from the "Install unknown apps" settings page.
+    val settingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        // Re-check after the user returns from Settings; install if granted, dismiss if not.
+        val info = pendingInstall ?: return@rememberLauncherForActivityResult
+        if (context.packageManager.canRequestPackageInstalls()) {
+            pendingInstall = null
+            onInstall(info)
+        } else {
+            pendingInstall = null
+        }
+    }
+
+    // Show explanation dialog when the install-unknown-apps permission is missing.
+    if (pendingInstall != null) {
+        AlertDialog(
+            onDismissRequest = { pendingInstall = null },
+            title = { Text(stringResource(R.string.detail_perm_dialog_title)) },
+            text = { Text(stringResource(R.string.detail_perm_dialog_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            Uri.parse("package:${context.packageName}"),
+                        )
+                        settingsLauncher.launch(intent)
+                    },
+                ) {
+                    Text(stringResource(R.string.detail_perm_open_settings))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingInstall = null }) {
+                    Text(stringResource(R.string.detail_perm_cancel))
+                }
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -92,7 +147,13 @@ fun PackageDetailScreen(
                     shadowElevation = 0.dp,
                 ) {
                     Button(
-                        onClick = { onInstall(state.info) },
+                        onClick = {
+                            if (context.packageManager.canRequestPackageInstalls()) {
+                                onInstall(state.info)
+                            } else {
+                                pendingInstall = state.info
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .windowInsetsPadding(WindowInsets.navigationBars)

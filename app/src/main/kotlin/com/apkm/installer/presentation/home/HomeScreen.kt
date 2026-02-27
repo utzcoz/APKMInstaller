@@ -115,7 +115,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeContent(
+internal fun HomeContent(
     onPickFile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

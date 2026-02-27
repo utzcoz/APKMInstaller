@@ -104,7 +104,11 @@ class InstallResultReceiver : BroadcastReceiver() {
         val state = when (status) {
             PackageInstaller.STATUS_SUCCESS -> InstallState.Success(packageName)
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
-                // System needs the user to confirm; launch the confirmation intent
+                // System needs the user to confirm (e.g. Play Protect verification on GMS emulators).
+                // Update the UI to PendingUserAction, then launch the confirmation activity.
+                // The receiver will be called again with STATUS_SUCCESS / STATUS_FAILURE after
+                // the user responds.
+                installer.resultChannel.trySend(InstallState.PendingUserAction)
                 val confirmIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
                 } else {
@@ -113,7 +117,7 @@ class InstallResultReceiver : BroadcastReceiver() {
                 }
                 confirmIntent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 confirmIntent?.let { context.startActivity(it) }
-                return // Wait for the next broadcast after the user confirms
+                return
             }
             else -> InstallState.Failure(message.ifBlank { "Installation failed (status=$status)" })
         }
