@@ -135,10 +135,8 @@ private fun ProgressContent(state: InstallState, appName: String, onCancel: () -
     val statusText = when (state) {
         InstallState.Extracting -> stringResource(R.string.install_step_extracting)
         InstallState.Verifying -> stringResource(R.string.install_step_verifying)
-        InstallState.Installing -> stringResource(R.string.install_step_installing)
-        InstallState.Finalizing -> stringResource(R.string.install_step_finalizing)
         InstallState.PendingUserAction -> stringResource(R.string.install_step_pending_user_action)
-        else -> stringResource(R.string.install_title)
+        else -> stringResource(R.string.install_step_installing)
     }
 
     Text(
@@ -148,7 +146,7 @@ private fun ProgressContent(state: InstallState, appName: String, onCancel: () -
         modifier = Modifier.testTag(INSTALL_STATUS_TAG),
     )
 
-    // Show Cancel during Finalizing so the user isn't stuck waiting for Play Protect.
+    // Show Cancel when the install is taking a while (Finalizing = Play Protect scan in background).
     if (state == InstallState.Finalizing || state == InstallState.PendingUserAction) {
         Spacer(Modifier.height(32.dp))
         OutlinedButton(onClick = onCancel) {
