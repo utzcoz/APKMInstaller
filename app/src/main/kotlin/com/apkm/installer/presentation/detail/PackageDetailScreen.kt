@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -81,6 +84,27 @@ fun PackageDetailScreen(
                 ),
             )
         },
+        bottomBar = {
+            val state = uiState
+            if (state is DetailUiState.Success) {
+                Surface(
+                    tonalElevation = 3.dp,
+                    shadowElevation = 0.dp,
+                ) {
+                    Button(
+                        onClick = { onInstall(state.info) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .windowInsetsPadding(WindowInsets.navigationBars)
+                            .padding(horizontal = 24.dp, vertical = 12.dp)
+                            .height(56.dp)
+                            .testTag(DETAIL_INSTALL_BUTTON_TAG),
+                    ) {
+                        Text(stringResource(R.string.detail_install), style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            }
+        },
     ) { innerPadding ->
         AnimatedContent(
             targetState = uiState,
@@ -92,7 +116,6 @@ fun PackageDetailScreen(
                 is DetailUiState.Error -> ErrorState(state.message)
                 is DetailUiState.Success -> SuccessState(
                     info = state.info,
-                    onInstall = { onInstall(state.info) },
                 )
             }
         }
@@ -115,17 +138,16 @@ private fun ErrorState(message: String) {
 
 /** Public entry point for Compose tests to render the success state directly. */
 @Composable
-fun SuccessStatePreviewContent(info: ApkmPackageInfo, onInstall: () -> Unit) =
-    SuccessState(info = info, onInstall = onInstall)
+fun SuccessStatePreviewContent(info: ApkmPackageInfo) =
+    SuccessState(info = info)
 
 @Composable
 private fun SuccessState(
     info: ApkmPackageInfo,
-    onInstall: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 96.dp),
+        contentPadding = PaddingValues(bottom = 16.dp),
     ) {
         item {
             AppHeader(info)
@@ -166,17 +188,7 @@ private fun SuccessState(
             }
         }
         item {
-            Spacer(Modifier.height(16.dp))
-            Button(
-                onClick = onInstall,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .height(56.dp)
-                    .testTag(DETAIL_INSTALL_BUTTON_TAG),
-            ) {
-                Text(stringResource(R.string.detail_install), style = MaterialTheme.typography.labelLarge)
-            }
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
@@ -270,7 +282,6 @@ private fun DetailPreview() {
                 apkFiles = listOf("/cache/base.apk"),
                 totalSizeBytes = 45_600_000,
             ),
-            onInstall = {},
         )
     }
 }

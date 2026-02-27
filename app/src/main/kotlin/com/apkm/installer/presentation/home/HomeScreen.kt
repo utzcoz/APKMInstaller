@@ -1,8 +1,14 @@
 package com.apkm.installer.presentation.home
 
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.provider.DocumentsContract
+import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.tween
@@ -46,6 +52,25 @@ import com.apkm.installer.presentation.theme.ApkMInstallerTheme
 
 const val HOME_PICK_BUTTON_TAG = "home_pick_button"
 
+/** Opens the Downloads folder by default, filtered to .apkm / octet-stream files. */
+private class OpenApkmContract : ActivityResultContract<Unit, Uri?>() {
+    override fun createIntent(context: Context, input: Unit): Intent =
+        Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/octet-stream", "*/*"))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                putExtra(
+                    DocumentsContract.EXTRA_INITIAL_URI,
+                    MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                )
+            }
+        }
+
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? =
+        if (resultCode == Activity.RESULT_OK) intent?.data else null
+}
+
 @Composable
 fun HomeScreen(
     onFilePicked: (Uri) -> Unit,
@@ -72,7 +97,7 @@ fun HomeScreen(
     }
 
     val filePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument(),
+        contract = OpenApkmContract(),
         onResult = { uri ->
             if (uri != null) viewModel.onFilePicked(uri)
             else viewModel.onError("No file selected")
@@ -84,7 +109,7 @@ fun HomeScreen(
     ) { innerPadding ->
         HomeContent(
             modifier = Modifier.padding(innerPadding),
-            onPickFile = { filePicker.launch(arrayOf("application/octet-stream", "*/*")) },
+            onPickFile = { filePicker.launch(Unit) },
         )
     }
 }

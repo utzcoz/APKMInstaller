@@ -48,7 +48,7 @@ class PackageDetailScreenTest {
         hiltRule.inject()
         composeRule.setContent {
             ApkMInstallerTheme {
-                SuccessStatePreviewContent(info = fakeInfo, onInstall = {})
+                SuccessStatePreviewContent(info = fakeInfo)
             }
         }
     }
