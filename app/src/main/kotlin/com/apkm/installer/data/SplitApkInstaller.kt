@@ -16,137 +16,164 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
 import java.io.File
 import java.io.FileInputStream
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "SplitApkInstaller"
 internal const val INSTALL_ACTION = "com.apkm.installer.INSTALL_RESULT"
-internal const val EXTRA_PACKAGE_NAME = "package_name"
-internal const val EXTRA_STATUS = "status"
-internal const val EXTRA_MESSAGE = "message"
+
+/**
+ * Holds state for one active PackageInstaller session.
+ *
+ * A fresh [ActiveSession] is created per [SplitApkInstaller.install] call.
+ * Using a per-session channel eliminates the stale-state bug where a terminal
+ * result from a previous install was consumed by the next install's receive loop.
+ */
+internal data class ActiveSession(
+    val sessionId: Int,
+    val packageName: String,
+    val channel: Channel<InstallState> = Channel(Channel.UNLIMITED),
+)
 
 /**
  * Installs one or more APKs (split-APK set) using the system [PackageInstaller] API.
  *
- * Results are delivered through [results] channel which the use-case layer subscribes to.
+ * Results are delivered via a per-session [Channel] returned by [install].
+ * Call [cancelCurrentSession] to abandon the active session (user cancel / timeout).
  */
 @Singleton
 class SplitApkInstaller @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    /** Receives install status from [InstallResultReceiver] via [resultChannel]. */
-    internal val resultChannel = Channel<InstallState>(capacity = Channel.BUFFERED)
+    /** The currently active install session. Null when no install is in progress. */
+    internal val activeSession = AtomicReference<ActiveSession?>(null)
 
     /**
-     * Installs the APKs at [apkPaths] as a single split-APK session.
-     * Emits [InstallState.Installing] and then one terminal state via [resultChannel].
+     * Starts a PackageInstaller session for [apkPaths] and returns a [Channel] that
+     * receives [InstallState] updates until a terminal [InstallState.Success] or
+     * [InstallState.Failure] is delivered.
      */
-    suspend fun install(packageName: String, apkPaths: List<String>): Unit {
-        val installer = context.packageManager.packageInstaller
+    suspend fun install(packageName: String, apkPaths: List<String>): Channel<InstallState> {
+        val pkgInstaller = context.packageManager.packageInstaller
+
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         params.setAppPackageName(packageName)
-        // Signal this is a deliberate user-initiated install (API 26+).
         params.setInstallReason(PackageManager.INSTALL_REASON_USER)
-        // On API 31+ request that no user-action prompt (including Play Protect scan dialogs)
-        // is shown. This is the same flag used by adb / shell installers to install silently.
-        // The system honours it when the app holds REQUEST_INSTALL_PACKAGES permission.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
         }
 
-        val sessionId = installer.createSession(params)
-        Log.i(TAG, "▶ install START  pkg=$packageName  apks=${apkPaths.size}  session=$sessionId")
-        val wallStart = SystemClock.elapsedRealtime()
+        val sessionId = pkgInstaller.createSession(params)
+        val session = ActiveSession(sessionId, packageName)
+        activeSession.set(session)
 
-        // SessionCallback fires on the main thread with live progress updates and, crucially,
-        // onFinished() — a reliable fallback when the PendingIntent broadcast is delayed by
-        // Play Protect scanning (which can hold the broadcast for 30+ seconds on GMS emulators).
+        val wallStart = SystemClock.elapsedRealtime()
+        fun elapsed() = SystemClock.elapsedRealtime() - wallStart
+        Log.i(TAG, "▶ install START  pkg=$packageName  apks=${apkPaths.size}  session=$sessionId")
+
         val sessionCallback = object : PackageInstaller.SessionCallback() {
             override fun onCreated(sId: Int) {}
             override fun onBadgingChanged(sId: Int) {}
             override fun onActiveChanged(sId: Int, active: Boolean) {
-                if (sId == sessionId) Log.d(TAG, "  [SessionCallback] active=$active  elapsed=${SystemClock.elapsedRealtime() - wallStart}ms")
+                if (sId == sessionId) Log.d(TAG, "  [CB#$sessionId] active=$active  t=${elapsed()}ms")
             }
             override fun onProgressChanged(sId: Int, progress: Float) {
-                if (sId == sessionId) Log.i(TAG, "  [SessionCallback] progress=${"%.0f".format(progress * 100)}%  elapsed=${SystemClock.elapsedRealtime() - wallStart}ms")
+                if (sId == sessionId) Log.i(TAG, "  [CB#$sessionId] progress=${"%.0f".format(progress * 100)}%  t=${elapsed()}ms")
             }
             override fun onFinished(sId: Int, success: Boolean) {
-                if (sId != sessionId) return
-                val elapsed = SystemClock.elapsedRealtime() - wallStart
-                Log.i(TAG, "  [SessionCallback] onFinished  success=$success  elapsed=${elapsed}ms")
-                // Unregister immediately to avoid leaking the callback.
-                installer.unregisterSessionCallback(this)
-                // Always push a result — the use-case loop breaks on the first *terminal* state
-                // (Success/Failure), so a duplicate terminal from onFinished() is harmless.
-                // Do NOT gate on resultChannel.isEmpty: the channel may still hold the non-terminal
-                // Finalizing state, causing isEmpty=false and this fallback to be silently skipped
-                // when the PendingIntent broadcast was actually dropped (rare but real on GMS emulators).
-                val pkg = installer.getSessionInfo(sId)?.appPackageName ?: packageName
+                if (sId != sessionId) {
+                    Log.w(TAG, "  [CB#$sId] onFinished for WRONG session (active=$sessionId) — ignoring")
+                    return
+                }
+                pkgInstaller.unregisterSessionCallback(this)
+                val t = elapsed()
+                Log.i(TAG, "  [CB#$sessionId] onFinished  success=$success  t=${t}ms")
+                val current = activeSession.get()
+                if (current == null || current.sessionId != sessionId) {
+                    Log.w(TAG, "  [CB#$sessionId] session already cleared (cancelled?) — ignoring")
+                    return
+                }
+                val pkg = pkgInstaller.getSessionInfo(sId)?.appPackageName ?: packageName
                 val state = if (success) InstallState.Success(pkg)
-                else InstallState.Failure("Installation failed (onFinished success=false, elapsed=${elapsed}ms)")
-                Log.w(TAG, "  [SessionCallback] pushing result from SessionCallback  state=$state")
-                resultChannel.trySend(state)
+                else InstallState.Failure("Installation failed (t=${t}ms)")
+                Log.i(TAG, "  [CB#$sessionId] → channel.trySend($state)  isEmpty=${current.channel.isEmpty}")
+                current.channel.trySend(state)
             }
         }
-        installer.registerSessionCallback(sessionCallback, Handler(Looper.getMainLooper()))
+        pkgInstaller.registerSessionCallback(sessionCallback, Handler(Looper.getMainLooper()))
+        Log.d(TAG, "  [#$sessionId] SessionCallback registered")
 
         try {
-            installer.openSession(sessionId).use { session ->
+            pkgInstaller.openSession(sessionId).use { pkgSession ->
                 apkPaths.forEachIndexed { index, path ->
                     val file = File(path)
-                    val sizeMb = "%.2f".format(file.length() / 1_048_576.0)
-                    Log.d(TAG, "  writing split_$index.apk  path=$path  size=${sizeMb}MB")
-                    val writeStart = SystemClock.elapsedRealtime()
+                    Log.d(TAG, "  [#$sessionId] writing split_$index  size=${"%.2f".format(file.length() / 1_048_576.0)}MB  t=${elapsed()}ms")
                     FileInputStream(file).use { input ->
-                        session.openWrite("split_$index.apk", 0, file.length()).use { out ->
+                        pkgSession.openWrite("split_$index.apk", 0, file.length()).use { out ->
                             input.copyTo(out, bufferSize = 1024 * 1024)
-                            session.fsync(out)
+                            pkgSession.fsync(out)
                         }
                     }
-                    Log.d(TAG, "  split_$index.apk written in ${SystemClock.elapsedRealtime() - writeStart}ms")
+                    Log.d(TAG, "  [#$sessionId] split_$index written  t=${elapsed()}ms")
                 }
 
-                val intent = Intent(INSTALL_ACTION).apply {
-                    setPackage(context.packageName)
-                }
-                val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val piIntent = Intent(INSTALL_ACTION).apply { setPackage(context.packageName) }
+                val piFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-                } else {
-                    PendingIntent.FLAG_UPDATE_CURRENT
-                }
-                val pendingIntent = PendingIntent.getBroadcast(context, sessionId, intent, flags)
-                Log.i(TAG, "  committing session $sessionId  elapsed=${SystemClock.elapsedRealtime() - wallStart}ms")
-                session.commit(pendingIntent.intentSender)
-                Log.i(TAG, "  session committed  elapsed=${SystemClock.elapsedRealtime() - wallStart}ms  (Play Protect scan starts now)")
-                // Signal the UI that streaming is done and the system is now verifying
-                // (Play Protect cloud scan on GMS devices can take 30+ seconds here).
-                resultChannel.trySend(InstallState.Finalizing)
+                else PendingIntent.FLAG_UPDATE_CURRENT
+                val pendingIntent = PendingIntent.getBroadcast(context, sessionId, piIntent, piFlags)
+
+                Log.i(TAG, "  [#$sessionId] committing  t=${elapsed()}ms")
+                pkgSession.commit(pendingIntent.intentSender)
+                Log.i(TAG, "  [#$sessionId] committed — awaiting callbacks  t=${elapsed()}ms")
+                session.channel.trySend(InstallState.Finalizing)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "✖ session $sessionId failed after ${SystemClock.elapsedRealtime() - wallStart}ms: ${e.message}", e)
-            installer.unregisterSessionCallback(sessionCallback)
-            installer.abandonSession(sessionId)
-            resultChannel.send(InstallState.Failure(e.message ?: "Unknown error"))
+            Log.e(TAG, "✖ [#$sessionId] exception t=${elapsed()}ms: ${e.message}", e)
+            pkgInstaller.unregisterSessionCallback(sessionCallback)
+            safeAbandon(pkgInstaller, sessionId)
+            session.channel.trySend(InstallState.Failure(e.message ?: "Unknown error"))
+            activeSession.compareAndSet(session, null)
+        }
+
+        return session.channel
+    }
+
+    /**
+     * Abandons the active PackageInstaller session, forcing an immediate failure result.
+     * Called when the user presses Cancel or the install times out.
+     */
+    fun cancelCurrentSession() {
+        val session = activeSession.getAndSet(null) ?: run {
+            Log.d(TAG, "cancelCurrentSession: no active session")
+            return
+        }
+        Log.w(TAG, "✖ cancelCurrentSession  session=${session.sessionId}")
+        safeAbandon(context.packageManager.packageInstaller, session.sessionId)
+        session.channel.trySend(InstallState.Failure("Installation cancelled"))
+    }
+
+    private fun safeAbandon(pkgInstaller: PackageInstaller, sessionId: Int) {
+        try {
+            pkgInstaller.abandonSession(sessionId)
+            Log.i(TAG, "  abandonSession($sessionId) OK")
+        } catch (e: Exception) {
+            Log.w(TAG, "  abandonSession($sessionId) skipped: ${e.message}")
         }
     }
 }
 
 /**
- * BroadcastReceiver wired in AndroidManifest that receives callbacks from the system
- * PackageInstaller and forwards them to [SplitApkInstaller.resultChannel].
- *
- * Hilt cannot inject into static receivers registered via manifest, so we obtain the
- * installer through the application-level Hilt component.
+ * BroadcastReceiver (registered in AndroidManifest) that forwards system
+ * PackageInstaller callbacks to the active session's [Channel].
  */
 class InstallResultReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != INSTALL_ACTION) return
 
-        val status = intent.getIntExtra(
-            PackageInstaller.EXTRA_STATUS,
-            PackageInstaller.STATUS_FAILURE,
-        )
+        val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
         val packageName = intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME) ?: ""
         val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: ""
         val statusName = when (status) {
@@ -161,32 +188,51 @@ class InstallResultReceiver : BroadcastReceiver() {
             PackageInstaller.STATUS_FAILURE_STORAGE -> "FAILURE_STORAGE"
             else -> "UNKNOWN($status)"
         }
-        Log.i(TAG, "◀ receiver  status=$statusName  pkg=$packageName  msg=${message.ifBlank { "(none)" }}")
+        Log.i(TAG, "◀ BroadcastReceiver  status=$statusName  pkg=$packageName  msg=${message.ifBlank { "(none)" }}")
 
         val installer = (context.applicationContext as? com.apkm.installer.ApkMInstallerApp)
-            ?.splitApkInstaller ?: return
+            ?.splitApkInstaller ?: run {
+            Log.e(TAG, "◀ could not get SplitApkInstaller from Application")
+            return
+        }
 
-        val state = when (status) {
-            PackageInstaller.STATUS_SUCCESS -> InstallState.Success(packageName)
+        val session = installer.activeSession.get()
+        if (session == null) {
+            Log.w(TAG, "◀ no active session — broadcast arrived after cancel/timeout, ignoring")
+            return
+        }
+        Log.i(TAG, "◀ routing to session=${session.sessionId}")
+
+        when (status) {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
-                // System needs the user to confirm (e.g. Play Protect verification on GMS emulators).
-                // Update the UI to PendingUserAction, then launch the confirmation activity.
-                // The receiver will be called again with STATUS_SUCCESS / STATUS_FAILURE after
-                // the user responds.
-                installer.resultChannel.trySend(InstallState.PendingUserAction)
+                Log.i(TAG, "  → PendingUserAction")
+                session.channel.trySend(InstallState.PendingUserAction)
                 val confirmIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
                 } else {
                     @Suppress("DEPRECATION")
-                    intent.getParcelableExtra(Intent.EXTRA_INTENT)
+                    intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
                 }
                 confirmIntent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                confirmIntent?.let { context.startActivity(it) }
-                return
+                if (confirmIntent != null) {
+                    Log.i(TAG, "  → starting confirmation: ${confirmIntent.component}")
+                    context.startActivity(confirmIntent)
+                } else {
+                    Log.e(TAG, "  → EXTRA_INTENT null — cannot show confirmation!")
+                }
             }
-            else -> InstallState.Failure(message.ifBlank { "Installation failed (status=$status)" })
+            PackageInstaller.STATUS_SUCCESS -> {
+                val state = InstallState.Success(packageName)
+                Log.i(TAG, "  → $state")
+                session.channel.trySend(state)
+                installer.activeSession.compareAndSet(session, null)
+            }
+            else -> {
+                val state = InstallState.Failure(message.ifBlank { "Installation failed ($statusName)" })
+                Log.i(TAG, "  → $state")
+                session.channel.trySend(state)
+                installer.activeSession.compareAndSet(session, null)
+            }
         }
-
-        installer.resultChannel.trySend(state)
     }
 }
