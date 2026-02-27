@@ -13,7 +13,7 @@ import android.util.Log
 import javax.inject.Inject
 
 private const val TAG = "InstallUseCase"
-private const val INSTALL_TIMEOUT_MS = 5 * 60 * 1000L // 5 minutes
+private const val INSTALL_TIMEOUT_MS = 90_000L // 90 seconds; SessionCallback.onFinished() is the real safety net
 
 /**
  * Drives the full installation pipeline: Extracting → Verifying → Installing → result.

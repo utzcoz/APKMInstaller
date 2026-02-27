@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import com.apkm.installer.domain.model.InstallState
@@ -47,6 +49,38 @@ class SplitApkInstaller @Inject constructor(
         Log.i(TAG, "▶ install START  pkg=$packageName  apks=${apkPaths.size}  session=$sessionId")
         val wallStart = SystemClock.elapsedRealtime()
 
+        // SessionCallback fires on the main thread with live progress updates and, crucially,
+        // onFinished() — a reliable fallback when the PendingIntent broadcast is delayed by
+        // Play Protect scanning (which can hold the broadcast for 30+ seconds on GMS emulators).
+        val sessionCallback = object : PackageInstaller.SessionCallback() {
+            override fun onCreated(sId: Int) {}
+            override fun onBadgingChanged(sId: Int) {}
+            override fun onActiveChanged(sId: Int, active: Boolean) {
+                if (sId == sessionId) Log.d(TAG, "  [SessionCallback] active=$active  elapsed=${SystemClock.elapsedRealtime() - wallStart}ms")
+            }
+            override fun onProgressChanged(sId: Int, progress: Float) {
+                if (sId == sessionId) Log.i(TAG, "  [SessionCallback] progress=${"%.0f".format(progress * 100)}%  elapsed=${SystemClock.elapsedRealtime() - wallStart}ms")
+            }
+            override fun onFinished(sId: Int, success: Boolean) {
+                if (sId != sessionId) return
+                val elapsed = SystemClock.elapsedRealtime() - wallStart
+                Log.i(TAG, "  [SessionCallback] onFinished  success=$success  elapsed=${elapsed}ms")
+                // Unregister immediately to avoid leaking the callback.
+                installer.unregisterSessionCallback(this)
+                // Always push a result — the use-case loop breaks on the first *terminal* state
+                // (Success/Failure), so a duplicate terminal from onFinished() is harmless.
+                // Do NOT gate on resultChannel.isEmpty: the channel may still hold the non-terminal
+                // Finalizing state, causing isEmpty=false and this fallback to be silently skipped
+                // when the PendingIntent broadcast was actually dropped (rare but real on GMS emulators).
+                val pkg = installer.getSessionInfo(sId)?.appPackageName ?: packageName
+                val state = if (success) InstallState.Success(pkg)
+                else InstallState.Failure("Installation failed (onFinished success=false, elapsed=${elapsed}ms)")
+                Log.w(TAG, "  [SessionCallback] pushing result from SessionCallback  state=$state")
+                resultChannel.trySend(state)
+            }
+        }
+        installer.registerSessionCallback(sessionCallback, Handler(Looper.getMainLooper()))
+
         try {
             installer.openSession(sessionId).use { session ->
                 apkPaths.forEachIndexed { index, path ->
@@ -81,6 +115,7 @@ class SplitApkInstaller @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "✖ session $sessionId failed after ${SystemClock.elapsedRealtime() - wallStart}ms: ${e.message}", e)
+            installer.unregisterSessionCallback(sessionCallback)
             installer.abandonSession(sessionId)
             resultChannel.send(InstallState.Failure(e.message ?: "Unknown error"))
         }
