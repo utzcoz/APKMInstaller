@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -44,6 +45,14 @@ class SplitApkInstaller @Inject constructor(
         val installer = context.packageManager.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         params.setAppPackageName(packageName)
+        // Signal this is a deliberate user-initiated install (API 26+).
+        params.setInstallReason(PackageManager.INSTALL_REASON_USER)
+        // On API 31+ request that no user-action prompt (including Play Protect scan dialogs)
+        // is shown. This is the same flag used by adb / shell installers to install silently.
+        // The system honours it when the app holds REQUEST_INSTALL_PACKAGES permission.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+        }
 
         val sessionId = installer.createSession(params)
         Log.i(TAG, "▶ install START  pkg=$packageName  apks=${apkPaths.size}  session=$sessionId")
