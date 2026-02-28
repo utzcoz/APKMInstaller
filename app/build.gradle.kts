@@ -133,7 +133,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
-    androidTestImplementation(libs.hilt.android)
+    androidTestImplementation(libs.hilt.android.testing)
     androidTestImplementation(libs.mockk)
     kspAndroidTest(libs.hilt.compiler)
 }
