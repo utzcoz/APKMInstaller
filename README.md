@@ -78,11 +78,12 @@ To update reference images after intentional UI changes:
 ## CI / CD
 
 ### Continuous Integration
-Every push to `main` and every pull request runs five parallel jobs:
+Every push to `main` and every pull request runs six parallel jobs:
 - **Build** — compiles the debug APK
 - **Lint** — Android Lint checks
 - **Detekt** — Kotlin static analysis
 - **Unit tests** — runs all JVM unit tests
+- **Instrumentation tests** — runs Android tests on a Gradle Managed Device (Pixel 6, API 34)
 - **Screenshot tests** — validates Compose preview screenshots against reference images
 
 ### Releasing a new version
