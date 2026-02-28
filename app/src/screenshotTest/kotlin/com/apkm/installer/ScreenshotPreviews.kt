@@ -32,20 +32,22 @@ fun HomeScreenPreview() {
 fun PackageDetailPreview() {
     ApkMInstallerTheme {
         SuccessStatePreviewContent(
-            info = ApkmPackageInfo(
-                appName = "Sample App",
-                packageName = "com.example.sample",
-                versionName = "3.14.2",
-                versionCode = 314002,
-                icon = null,
-                permissions = listOf(
-                    "android.permission.INTERNET",
-                    "android.permission.CAMERA",
-                    "android.permission.ACCESS_FINE_LOCATION",
+            info =
+                ApkmPackageInfo(
+                    appName = "Sample App",
+                    packageName = "com.example.sample",
+                    versionName = "3.14.2",
+                    versionCode = 314002,
+                    icon = null,
+                    permissions =
+                        listOf(
+                            "android.permission.INTERNET",
+                            "android.permission.CAMERA",
+                            "android.permission.ACCESS_FINE_LOCATION",
+                        ),
+                    apkFiles = listOf("/cache/base.apk", "/cache/split_config.arm64_v8a.apk"),
+                    totalSizeBytes = 45_600_000,
                 ),
-                apkFiles = listOf("/cache/base.apk", "/cache/split_config.arm64_v8a.apk"),
-                totalSizeBytes = 45_600_000,
-            ),
         )
     }
 }

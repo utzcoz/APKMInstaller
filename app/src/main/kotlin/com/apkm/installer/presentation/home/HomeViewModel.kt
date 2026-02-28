@@ -13,24 +13,25 @@ data class HomeUiState(
 )
 
 @HiltViewModel
-class HomeViewModel @Inject constructor() : ViewModel() {
+class HomeViewModel
+    @Inject
+    constructor() : ViewModel() {
+        private val _uiState = MutableStateFlow(HomeUiState())
+        val uiState: StateFlow<HomeUiState> = _uiState
 
-    private val _uiState = MutableStateFlow(HomeUiState())
-    val uiState: StateFlow<HomeUiState> = _uiState
+        fun onFilePicked(uri: Uri) {
+            _uiState.value = HomeUiState(pendingUri = uri)
+        }
 
-    fun onFilePicked(uri: Uri) {
-        _uiState.value = HomeUiState(pendingUri = uri)
+        fun onNavigatedToDetail() {
+            _uiState.value = HomeUiState()
+        }
+
+        fun onError(message: String) {
+            _uiState.value = HomeUiState(error = message)
+        }
+
+        fun clearError() {
+            _uiState.value = _uiState.value.copy(error = null)
+        }
     }
-
-    fun onNavigatedToDetail() {
-        _uiState.value = HomeUiState()
-    }
-
-    fun onError(message: String) {
-        _uiState.value = HomeUiState(error = message)
-    }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
-    }
-}

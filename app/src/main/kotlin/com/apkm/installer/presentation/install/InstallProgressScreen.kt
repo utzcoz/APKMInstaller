@@ -87,9 +87,10 @@ fun InstallContent(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(32.dp),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -103,7 +104,11 @@ fun InstallContent(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ProgressContent(state: InstallState, appName: String, onCancel: () -> Unit) {
+private fun ProgressContent(
+    state: InstallState,
+    appName: String,
+    onCancel: () -> Unit,
+) {
     CircularWavyProgressIndicator(
         modifier = Modifier.size(96.dp),
         color = MaterialTheme.colorScheme.primary,
@@ -120,11 +125,12 @@ private fun ProgressContent(state: InstallState, appName: String, onCancel: () -
 
     Spacer(Modifier.height(12.dp))
 
-    val statusText = when (state) {
-        InstallState.Extracting -> stringResource(R.string.install_step_extracting)
-        InstallState.Verifying -> stringResource(R.string.install_step_verifying)
-        else -> stringResource(R.string.install_step_installing)
-    }
+    val statusText =
+        when (state) {
+            InstallState.Extracting -> stringResource(R.string.install_step_extracting)
+            InstallState.Verifying -> stringResource(R.string.install_step_verifying)
+            else -> stringResource(R.string.install_step_installing)
+        }
 
     Text(
         text = statusText,
@@ -140,16 +146,21 @@ private fun ProgressContent(state: InstallState, appName: String, onCancel: () -
 }
 
 @Composable
-private fun SuccessContent(appName: String, packageName: String, onDone: () -> Unit) {
+private fun SuccessContent(
+    appName: String,
+    packageName: String,
+    onDone: () -> Unit,
+) {
     val scale = remember { Animatable(0f) }
     LaunchedEffect(Unit) { scale.animateTo(1f, tween(400)) }
 
     Icon(
         Icons.Outlined.CheckCircle,
         contentDescription = null,
-        modifier = Modifier
-            .scale(scale.value)
-            .size(80.dp),
+        modifier =
+            Modifier
+                .scale(scale.value)
+                .size(80.dp),
         tint = MaterialTheme.colorScheme.tertiary,
     )
 
@@ -173,9 +184,10 @@ private fun SuccessContent(appName: String, packageName: String, onDone: () -> U
     Spacer(Modifier.height(32.dp))
 
     val context = LocalContext.current
-    val launchIntent = remember(packageName) {
-        context.packageManager.getLaunchIntentForPackage(packageName)
-    }
+    val launchIntent =
+        remember(packageName) {
+            context.packageManager.getLaunchIntentForPackage(packageName)
+        }
 
     if (launchIntent != null) {
         Button(
@@ -189,16 +201,20 @@ private fun SuccessContent(appName: String, packageName: String, onDone: () -> U
 
     OutlinedButton(
         onClick = onDone,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(INSTALL_DONE_BUTTON_TAG),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .testTag(INSTALL_DONE_BUTTON_TAG),
     ) {
         Text(stringResource(R.string.install_done))
     }
 }
 
 @Composable
-private fun FailureContent(message: String, onRetry: () -> Unit) {
+private fun FailureContent(
+    message: String,
+    onRetry: () -> Unit,
+) {
     Icon(
         Icons.Outlined.ErrorOutline,
         contentDescription = null,
@@ -228,9 +244,10 @@ private fun FailureContent(message: String, onRetry: () -> Unit) {
 
     Button(
         onClick = onRetry,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(INSTALL_RETRY_BUTTON_TAG),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .testTag(INSTALL_RETRY_BUTTON_TAG),
     ) {
         Text(stringResource(R.string.install_retry))
     }

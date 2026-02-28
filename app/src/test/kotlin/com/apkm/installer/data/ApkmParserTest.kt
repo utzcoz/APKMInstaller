@@ -19,7 +19,6 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 class ApkmParserTest {
-
     @get:Rule
     val tempFolder = TemporaryFolder()
 
@@ -30,10 +29,11 @@ class ApkmParserTest {
     @Before
     fun setUp() {
         packageManager = mockk(relaxed = true)
-        context = mockk {
-            every { packageManager } returns this@ApkmParserTest.packageManager
-            every { cacheDir } returns tempFolder.root
-        }
+        context =
+            mockk {
+                every { packageManager } returns this@ApkmParserTest.packageManager
+                every { cacheDir } returns tempFolder.root
+            }
         parser = ApkmParser(context)
     }
 
@@ -43,12 +43,13 @@ class ApkmParserTest {
         val uri = mockUriReturning(apkmBytes)
 
         val appInfo = ApplicationInfo().apply { packageName = "com.example.testapp" }
-        val fakePkgInfo = PackageInfo().apply {
-            packageName = "com.example.testapp"
-            versionName = "1.2.3"
-            requestedPermissions = arrayOf("android.permission.INTERNET")
-            applicationInfo = appInfo
-        }
+        val fakePkgInfo =
+            PackageInfo().apply {
+                packageName = "com.example.testapp"
+                versionName = "1.2.3"
+                requestedPermissions = arrayOf("android.permission.INTERNET")
+                applicationInfo = appInfo
+            }
         every { packageManager.getPackageArchiveInfo(any(), any<Int>()) } returns fakePkgInfo
 
         val result = parser.parse(uri)
@@ -73,11 +74,12 @@ class ApkmParserTest {
         val uri = mockUriReturning(apkmBytes)
 
         val appInfo = ApplicationInfo().apply { packageName = "com.example.app" }
-        val fakePkgInfo = PackageInfo().apply {
-            packageName = "com.example.app"
-            versionName = "1.0"
-            applicationInfo = appInfo
-        }
+        val fakePkgInfo =
+            PackageInfo().apply {
+                packageName = "com.example.app"
+                versionName = "1.0"
+                applicationInfo = appInfo
+            }
         every { packageManager.getPackageArchiveInfo(any(), any<Int>()) } returns fakePkgInfo
 
         val result = parser.parse(uri)
@@ -100,9 +102,10 @@ class ApkmParserTest {
     }
 
     private fun mockUriReturning(bytes: ByteArray): Uri {
-        val contentResolver = mockk<ContentResolver> {
-            every { openInputStream(any()) } returns bytes.inputStream()
-        }
+        val contentResolver =
+            mockk<ContentResolver> {
+                every { openInputStream(any()) } returns bytes.inputStream()
+            }
         every { context.contentResolver } returns contentResolver
         return mockk()
     }

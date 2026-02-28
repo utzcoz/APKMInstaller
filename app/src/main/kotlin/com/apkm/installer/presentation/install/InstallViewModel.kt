@@ -14,32 +14,34 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class InstallViewModel @Inject constructor(
-    private val installPackageUseCase: InstallPackageUseCase,
-    private val installer: SplitApkInstaller,
-) : ViewModel() {
+class InstallViewModel
+    @Inject
+    constructor(
+        private val installPackageUseCase: InstallPackageUseCase,
+        private val installer: SplitApkInstaller,
+    ) : ViewModel() {
+        private val _installState = MutableStateFlow<InstallState>(InstallState.Idle)
+        val installState: StateFlow<InstallState> = _installState
 
-    private val _installState = MutableStateFlow<InstallState>(InstallState.Idle)
-    val installState: StateFlow<InstallState> = _installState
+        private var installJob: Job? = null
 
-    private var installJob: Job? = null
+        fun install(info: ApkmPackageInfo) {
+            if (_installState.value != InstallState.Idle) return
+            installJob =
+                viewModelScope.launch {
+                    installPackageUseCase(info).collect { state ->
+                        _installState.value = state
+                    }
+                }
+        }
 
-    fun install(info: ApkmPackageInfo) {
-        if (_installState.value != InstallState.Idle) return
-        installJob = viewModelScope.launch {
-            installPackageUseCase(info).collect { state ->
-                _installState.value = state
-            }
+        fun cancel() {
+            installJob?.cancel()
+            installer.cancelCurrentSession()
+            _installState.value = InstallState.Idle
+        }
+
+        fun reset() {
+            _installState.value = InstallState.Idle
         }
     }
-
-    fun cancel() {
-        installJob?.cancel()
-        installer.cancelCurrentSession()
-        _installState.value = InstallState.Idle
-    }
-
-    fun reset() {
-        _installState.value = InstallState.Idle
-    }
-}

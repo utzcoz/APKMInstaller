@@ -21,26 +21,27 @@ import org.junit.runner.RunWith
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class PackageDetailScreenTest {
-
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 1)
     val composeRule = createComposeRule()
 
-    private val fakeInfo = ApkmPackageInfo(
-        appName = "Fake App",
-        packageName = "com.fake.app",
-        versionName = "9.9.9",
-        versionCode = 999,
-        icon = null,
-        permissions = listOf(
-            "android.permission.INTERNET",
-            "android.permission.CAMERA",
-        ),
-        apkFiles = listOf("/cache/base.apk"),
-        totalSizeBytes = 50_000_000,
-    )
+    private val fakeInfo =
+        ApkmPackageInfo(
+            appName = "Fake App",
+            packageName = "com.fake.app",
+            versionName = "9.9.9",
+            versionCode = 999,
+            icon = null,
+            permissions =
+                listOf(
+                    "android.permission.INTERNET",
+                    "android.permission.CAMERA",
+                ),
+            apkFiles = listOf("/cache/base.apk"),
+            totalSizeBytes = 50_000_000,
+        )
 
     @Before
     fun setUp() {

@@ -54,7 +54,10 @@ const val HOME_PICK_BUTTON_TAG = "home_pick_button"
 
 /** Opens the Downloads folder by default, filtered to .apkm / octet-stream files. */
 private class OpenApkmContract : ActivityResultContract<Unit, Uri?>() {
-    override fun createIntent(context: Context, input: Unit): Intent =
+    override fun createIntent(
+        context: Context,
+        input: Unit,
+    ): Intent =
         Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "*/*"
@@ -67,8 +70,10 @@ private class OpenApkmContract : ActivityResultContract<Unit, Uri?>() {
             }
         }
 
-    override fun parseResult(resultCode: Int, intent: Intent?): Uri? =
-        if (resultCode == Activity.RESULT_OK) intent?.data else null
+    override fun parseResult(
+        resultCode: Int,
+        intent: Intent?,
+    ): Uri? = if (resultCode == Activity.RESULT_OK) intent?.data else null
 }
 
 @Composable
@@ -96,13 +101,17 @@ fun HomeScreen(
         }
     }
 
-    val filePicker = rememberLauncherForActivityResult(
-        contract = OpenApkmContract(),
-        onResult = { uri ->
-            if (uri != null) viewModel.onFilePicked(uri)
-            else viewModel.onError("No file selected")
-        },
-    )
+    val filePicker =
+        rememberLauncherForActivityResult(
+            contract = OpenApkmContract(),
+            onResult = { uri ->
+                if (uri != null) {
+                    viewModel.onFilePicked(uri)
+                } else {
+                    viewModel.onError("No file selected")
+                }
+            },
+        )
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -131,13 +140,14 @@ internal fun HomeContent(
     ) {
         // Hero icon
         Box(
-            modifier = Modifier
-                .scale(scale.value)
-                .size(120.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape,
-                ),
+            modifier =
+                Modifier
+                    .scale(scale.value)
+                    .size(120.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = CircleShape,
+                    ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -170,14 +180,16 @@ internal fun HomeContent(
 
         Button(
             onClick = onPickFile,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 48.dp)
-                .height(56.dp)
-                .testTag(HOME_PICK_BUTTON_TAG),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 48.dp)
+                    .height(56.dp)
+                    .testTag(HOME_PICK_BUTTON_TAG),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                ),
         ) {
             Icon(
                 imageVector = Icons.Outlined.FolderOpen,

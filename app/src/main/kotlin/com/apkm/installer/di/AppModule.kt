@@ -15,22 +15,21 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+    @Provides
+    @Singleton
+    fun provideApkmParser(
+        @ApplicationContext context: Context,
+    ): ApkmParser = ApkmParser(context)
 
     @Provides
     @Singleton
-    fun provideApkmParser(@ApplicationContext context: Context): ApkmParser =
-        ApkmParser(context)
+    fun provideSplitApkInstaller(
+        @ApplicationContext context: Context,
+    ): SplitApkInstaller = SplitApkInstaller(context)
 
     @Provides
-    @Singleton
-    fun provideSplitApkInstaller(@ApplicationContext context: Context): SplitApkInstaller =
-        SplitApkInstaller(context)
+    fun provideParseApkmUseCase(parser: ApkmParser): ParseApkmUseCase = ParseApkmUseCase(parser)
 
     @Provides
-    fun provideParseApkmUseCase(parser: ApkmParser): ParseApkmUseCase =
-        ParseApkmUseCase(parser)
-
-    @Provides
-    fun provideInstallPackageUseCase(installer: SplitApkInstaller): InstallPackageUseCase =
-        InstallPackageUseCase(installer)
+    fun provideInstallPackageUseCase(installer: SplitApkInstaller): InstallPackageUseCase = InstallPackageUseCase(installer)
 }

@@ -11,10 +11,13 @@ import javax.inject.Inject
  * Parses a .apkm [Uri] and returns the extracted [ApkmPackageInfo].
  * Runs on [Dispatchers.IO] to avoid blocking the main thread.
  */
-class ParseApkmUseCase @Inject constructor(
-    private val parser: ApkmParser,
-) {
-    suspend operator fun invoke(uri: Uri): Result<ApkmPackageInfo> = withContext(Dispatchers.IO) {
-        runCatching { parser.parse(uri) }
+class ParseApkmUseCase
+    @Inject
+    constructor(
+        private val parser: ApkmParser,
+    ) {
+        suspend operator fun invoke(uri: Uri): Result<ApkmPackageInfo> =
+            withContext(Dispatchers.IO) {
+                runCatching { parser.parse(uri) }
+            }
     }
-}

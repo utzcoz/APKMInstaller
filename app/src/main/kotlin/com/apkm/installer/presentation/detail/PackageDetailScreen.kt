@@ -85,22 +85,24 @@ fun PackageDetailScreen(
     var pendingInstall by remember { mutableStateOf<ApkmPackageInfo?>(null) }
 
     // Launcher that returns from the "Install unknown apps" settings page.
-    val settingsLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) {
-        val info = pendingInstall ?: return@rememberLauncherForActivityResult
-        pendingInstall = null
-        if (context.packageManager.canRequestPackageInstalls()) onInstall(info)
-    }
+    val settingsLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult(),
+        ) {
+            val info = pendingInstall ?: return@rememberLauncherForActivityResult
+            pendingInstall = null
+            if (context.packageManager.canRequestPackageInstalls()) onInstall(info)
+        }
 
     if (pendingInstall != null) {
         InstallPermissionDialog(
             onDismiss = { pendingInstall = null },
             onOpenSettings = {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                    Uri.parse("package:${context.packageName}"),
-                )
+                val intent =
+                    Intent(
+                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:${context.packageName}"),
+                    )
                 settingsLauncher.launch(intent)
             },
         )
@@ -115,9 +117,10 @@ fun PackageDetailScreen(
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
             )
         },
         bottomBar = {
@@ -150,7 +153,10 @@ fun PackageDetailScreen(
 }
 
 @Composable
-private fun InstallPermissionDialog(onDismiss: () -> Unit, onOpenSettings: () -> Unit) {
+private fun InstallPermissionDialog(
+    onDismiss: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.detail_perm_dialog_title)) },
@@ -173,12 +179,13 @@ private fun InstallBottomBar(onInstallClick: () -> Unit) {
     Surface(tonalElevation = 3.dp, shadowElevation = 0.dp) {
         Button(
             onClick = onInstallClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = 24.dp, vertical = 12.dp)
-                .height(56.dp)
-                .testTag(DETAIL_INSTALL_BUTTON_TAG),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+                    .height(56.dp)
+                    .testTag(DETAIL_INSTALL_BUTTON_TAG),
         ) {
             Text(stringResource(R.string.detail_install), style = MaterialTheme.typography.labelLarge)
         }
@@ -201,13 +208,10 @@ private fun ErrorState(message: String) {
 
 /** Public entry point for Compose tests to render the success state directly. */
 @Composable
-fun SuccessStatePreviewContent(info: ApkmPackageInfo) =
-    SuccessState(info = info)
+fun SuccessStatePreviewContent(info: ApkmPackageInfo) = SuccessState(info = info)
 
 @Composable
-private fun SuccessState(
-    info: ApkmPackageInfo,
-) {
+private fun SuccessState(info: ApkmPackageInfo) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 16.dp),
@@ -259,9 +263,10 @@ private fun SuccessState(
 @Composable
 private fun AppHeader(info: ApkmPackageInfo) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 20.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -281,9 +286,10 @@ private fun AppHeader(info: ApkmPackageInfo) {
                 Icon(
                     Icons.Outlined.Android,
                     contentDescription = null,
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .size(40.dp),
+                    modifier =
+                        Modifier
+                            .padding(12.dp)
+                            .size(40.dp),
                     tint = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             }
@@ -304,11 +310,15 @@ private fun AppHeader(info: ApkmPackageInfo) {
 }
 
 @Composable
-private fun MetaRow(label: String, value: String) {
+private fun MetaRow(
+    label: String,
+    value: String,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -319,32 +329,36 @@ private fun MetaRow(label: String, value: String) {
 private const val BYTES_IN_KB = 1024L
 private const val BYTES_IN_MB = 1024L * 1024L
 
-private fun formatBytes(bytes: Long): String = when {
-    bytes < BYTES_IN_KB -> "$bytes B"
-    bytes < BYTES_IN_MB -> "${bytes / BYTES_IN_KB} KB"
-    else -> "${"%.1f".format(bytes / BYTES_IN_MB.toDouble())} MB"
-}
+private fun formatBytes(bytes: Long): String =
+    when {
+        bytes < BYTES_IN_KB -> "$bytes B"
+        bytes < BYTES_IN_MB -> "${bytes / BYTES_IN_KB} KB"
+        else -> "${"%.1f".format(bytes / BYTES_IN_MB.toDouble())} MB"
+    }
 
 @Suppress("UnusedPrivateMember")
 @Composable
-private fun rememberBitmap(key: Any?, calculation: () -> Any?) =
-    androidx.compose.runtime.remember(key) { calculation() }
+private fun rememberBitmap(
+    key: Any?,
+    calculation: () -> Any?,
+) = androidx.compose.runtime.remember(key) { calculation() }
 
 @Preview(showBackground = true)
 @Composable
 private fun DetailPreview() {
     ApkMInstallerTheme {
         SuccessState(
-            info = ApkmPackageInfo(
-                appName = "Sample App",
-                packageName = "com.example.sample",
-                versionName = "3.14.2",
-                versionCode = 314002,
-                icon = null,
-                permissions = listOf("android.permission.INTERNET", "android.permission.CAMERA"),
-                apkFiles = listOf("/cache/base.apk"),
-                totalSizeBytes = 45_600_000,
-            ),
+            info =
+                ApkmPackageInfo(
+                    appName = "Sample App",
+                    packageName = "com.example.sample",
+                    versionName = "3.14.2",
+                    versionCode = 314002,
+                    icon = null,
+                    permissions = listOf("android.permission.INTERNET", "android.permission.CAMERA"),
+                    apkFiles = listOf("/cache/base.apk"),
+                    totalSizeBytes = 45_600_000,
+                ),
         )
     }
 }
