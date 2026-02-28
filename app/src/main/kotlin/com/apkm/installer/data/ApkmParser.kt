@@ -25,7 +25,7 @@ private const val MAX_EXTRACT_BYTES = 2L * 1024 * 1024 * 1024 // 2 GB safety cap
  */
 @Singleton
 class ApkmParser @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
 
     /**

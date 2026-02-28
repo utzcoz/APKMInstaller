@@ -37,7 +37,7 @@ private const val TIMEOUT_MS = 5L * 60 * 1_000 // 5 minutes
  */
 @Singleton
 class SplitApkInstaller @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     @Volatile
     private var currentSessionId: Int = -1
