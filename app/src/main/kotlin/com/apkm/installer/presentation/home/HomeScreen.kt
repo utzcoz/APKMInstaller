@@ -59,7 +59,7 @@ private class OpenApkmContract : ActivityResultContract<Unit, Uri?>() {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "*/*"
             putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/octet-stream", "*/*"))
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 putExtra(
                     DocumentsContract.EXTRA_INITIAL_URI,
                     MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL),

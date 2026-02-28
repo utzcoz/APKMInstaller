@@ -88,39 +88,20 @@ fun PackageDetailScreen(
     val settingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        // Re-check after the user returns from Settings; install if granted, dismiss if not.
         val info = pendingInstall ?: return@rememberLauncherForActivityResult
-        if (context.packageManager.canRequestPackageInstalls()) {
-            pendingInstall = null
-            onInstall(info)
-        } else {
-            pendingInstall = null
-        }
+        pendingInstall = null
+        if (context.packageManager.canRequestPackageInstalls()) onInstall(info)
     }
 
-    // Show explanation dialog when the install-unknown-apps permission is missing.
     if (pendingInstall != null) {
-        AlertDialog(
-            onDismissRequest = { pendingInstall = null },
-            title = { Text(stringResource(R.string.detail_perm_dialog_title)) },
-            text = { Text(stringResource(R.string.detail_perm_dialog_body)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val intent = Intent(
-                            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                            Uri.parse("package:${context.packageName}"),
-                        )
-                        settingsLauncher.launch(intent)
-                    },
-                ) {
-                    Text(stringResource(R.string.detail_perm_open_settings))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingInstall = null }) {
-                    Text(stringResource(R.string.detail_perm_cancel))
-                }
+        InstallPermissionDialog(
+            onDismiss = { pendingInstall = null },
+            onOpenSettings = {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:${context.packageName}"),
+                )
+                settingsLauncher.launch(intent)
             },
         )
     }
@@ -142,28 +123,15 @@ fun PackageDetailScreen(
         bottomBar = {
             val state = uiState
             if (state is DetailUiState.Success) {
-                Surface(
-                    tonalElevation = 3.dp,
-                    shadowElevation = 0.dp,
-                ) {
-                    Button(
-                        onClick = {
-                            if (context.packageManager.canRequestPackageInstalls()) {
-                                onInstall(state.info)
-                            } else {
-                                pendingInstall = state.info
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .windowInsetsPadding(WindowInsets.navigationBars)
-                            .padding(horizontal = 24.dp, vertical = 12.dp)
-                            .height(56.dp)
-                            .testTag(DETAIL_INSTALL_BUTTON_TAG),
-                    ) {
-                        Text(stringResource(R.string.detail_install), style = MaterialTheme.typography.labelLarge)
-                    }
-                }
+                InstallBottomBar(
+                    onInstallClick = {
+                        if (context.packageManager.canRequestPackageInstalls()) {
+                            onInstall(state.info)
+                        } else {
+                            pendingInstall = state.info
+                        }
+                    },
+                )
             }
         },
     ) { innerPadding ->
@@ -175,10 +143,44 @@ fun PackageDetailScreen(
             when (state) {
                 is DetailUiState.Loading -> LoadingState()
                 is DetailUiState.Error -> ErrorState(state.message)
-                is DetailUiState.Success -> SuccessState(
-                    info = state.info,
-                )
+                is DetailUiState.Success -> SuccessState(info = state.info)
             }
+        }
+    }
+}
+
+@Composable
+private fun InstallPermissionDialog(onDismiss: () -> Unit, onOpenSettings: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.detail_perm_dialog_title)) },
+        text = { Text(stringResource(R.string.detail_perm_dialog_body)) },
+        confirmButton = {
+            TextButton(onClick = onOpenSettings) {
+                Text(stringResource(R.string.detail_perm_open_settings))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.detail_perm_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun InstallBottomBar(onInstallClick: () -> Unit) {
+    Surface(tonalElevation = 3.dp, shadowElevation = 0.dp) {
+        Button(
+            onClick = onInstallClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(horizontal = 24.dp, vertical = 12.dp)
+                .height(56.dp)
+                .testTag(DETAIL_INSTALL_BUTTON_TAG),
+        ) {
+            Text(stringResource(R.string.detail_install), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
