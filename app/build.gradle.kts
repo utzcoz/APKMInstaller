@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.screenshot)
 }
 
 android {
@@ -43,6 +44,9 @@ android {
     buildFeatures {
         compose = true
     }
+
+    @Suppress("OPT_IN_USAGE")
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
 
     testOptions {
         unitTests {
@@ -113,6 +117,10 @@ dependencies {
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Screenshot tests
+    screenshotTestImplementation(libs.screenshot.validation.api)
+    screenshotTestImplementation(libs.androidx.ui.tooling)
 
     // Unit tests
     testImplementation(libs.junit)

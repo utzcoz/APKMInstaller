@@ -1,7 +1,5 @@
 # APKM Installer
 
-[![CI](https://github.com/your-org/APKMInstaller/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/APKMInstaller/actions/workflows/ci.yml)
-
 A modern, ads-free Android app for installing `.apkm` split-APK packages downloaded from [APK Mirror](https://www.apkmirror.com/).
 
 ## Features
