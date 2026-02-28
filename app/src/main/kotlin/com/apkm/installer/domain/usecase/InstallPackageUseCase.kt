@@ -16,8 +16,10 @@ private const val TAG = "InstallUseCase"
 /**
  * Drives the full installation pipeline: Extracting → Verifying → Installing → result.
  *
- * Uses the shell-based `pm install-create/-write/-commit` approach which is synchronous
- * and does not require BroadcastReceiver callbacks, Play Protect scanning, or timeouts.
+ * Uses the [PackageInstaller] session API with a dynamically-registered BroadcastReceiver.
+ * [STATUS_PENDING_USER_ACTION][PackageInstaller.STATUS_PENDING_USER_ACTION] is handled by
+ * launching the system confirmation Activity; a [CompletableDeferred] bridges the async
+ * callback to the calling coroutine with a 5-minute timeout.
  */
 class InstallPackageUseCase @Inject constructor(
     private val installer: SplitApkInstaller,
