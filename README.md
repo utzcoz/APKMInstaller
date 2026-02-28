@@ -18,7 +18,7 @@ A modern, ads-free Android app for installing `.apkm` split-APK packages downloa
 | Language | Kotlin 2.2.21 |
 | UI | Jetpack Compose + Material Design 3 |
 | Architecture | Clean Architecture + MVVM |
-| DI | Hilt 2.57.2 |
+| DI | Hilt 2.59.2 |
 | Navigation | Navigation Compose |
 | Image loading | Coil 2.7.0 |
 | Async | Coroutines + StateFlow |
@@ -78,10 +78,11 @@ To update reference images after intentional UI changes:
 ## CI / CD
 
 ### Continuous Integration
-Every push to `main` and every pull request runs six parallel jobs:
+Every push to `main` and every pull request runs seven parallel jobs:
 - **Build** — compiles the debug APK
 - **Lint** — Android Lint checks
 - **Detekt** — Kotlin static analysis
+- **Spotless** — ktlint formatting verification
 - **Unit tests** — runs all JVM unit tests
 - **Instrumentation tests** — runs Android tests on a Gradle Managed Device (Pixel 6, API 34)
 - **Screenshot tests** — validates Compose preview screenshots against reference images

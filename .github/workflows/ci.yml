@@ -131,7 +131,7 @@ jobs:
           cache: gradle
 
       - name: Run instrumentation tests on Gradle Managed Device
-        run: ./gradlew pixel6api34DebugAndroidTest --no-daemon
+        run: ./gradlew pixel6api34DebugAndroidTest --no-daemon -Dorg.gradle.jvmargs="-Xmx4g -Djava.awt.headless=true"
 
       - name: Upload instrumentation test report
         uses: actions/upload-artifact@v4
@@ -165,3 +165,20 @@ jobs:
           name: screenshot-test-report
           path: app/build/reports/screenshotTest/
           retention-days: 7
+
+  spotless:
+    name: Spotless formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Check formatting
+        run: ./gradlew spotlessCheck --no-daemon
