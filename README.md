@@ -56,6 +56,15 @@ The app extracts all APKs to a temporary cache directory and installs them toget
 ```
 Report: `app/build/reports/detekt/detekt.html`
 
+### Screenshot tests (Compose Preview)
+```bash
+./gradlew validateDebugScreenshotTest
+```
+To update reference images after intentional UI changes:
+```bash
+./gradlew updateDebugScreenshotTest
+```
+
 ### Android Lint
 ```bash
 ./gradlew lintDebug
@@ -69,11 +78,12 @@ Report: `app/build/reports/detekt/detekt.html`
 ## CI / CD
 
 ### Continuous Integration
-Every push to `main` and every pull request runs four parallel jobs:
+Every push to `main` and every pull request runs five parallel jobs:
 - **Build** — compiles the debug APK
 - **Lint** — Android Lint checks
 - **Detekt** — Kotlin static analysis
 - **Unit tests** — runs all JVM unit tests
+- **Screenshot tests** — validates Compose preview screenshots against reference images
 
 ### Releasing a new version
 1. Update `versionName` and `versionCode` in `app/build.gradle.kts`
