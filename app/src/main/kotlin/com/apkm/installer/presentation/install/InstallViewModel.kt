@@ -2,7 +2,6 @@ package com.apkm.installer.presentation.install
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.apkm.installer.data.SplitApkInstaller
 import com.apkm.installer.domain.model.ApkmPackageInfo
 import com.apkm.installer.domain.model.InstallState
 import com.apkm.installer.domain.usecase.InstallPackageUseCase
@@ -16,7 +15,6 @@ import javax.inject.Inject
 @HiltViewModel
 class InstallViewModel @Inject constructor(
     private val installPackageUseCase: InstallPackageUseCase,
-    private val installer: SplitApkInstaller,
 ) : ViewModel() {
 
     private val _installState = MutableStateFlow<InstallState>(InstallState.Idle)
@@ -35,7 +33,6 @@ class InstallViewModel @Inject constructor(
 
     fun cancel() {
         installJob?.cancel()
-        installer.cancelCurrentSession()
         _installState.value = InstallState.Idle
     }
 

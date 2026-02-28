@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -105,22 +104,11 @@ fun InstallContent(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ProgressContent(state: InstallState, appName: String, onCancel: () -> Unit) {
-    if (state == InstallState.PendingUserAction) {
-        // System is showing a confirmation dialog — swap spinner for an attention icon so
-        // the user knows they need to interact with the system prompt (not this app).
-        Icon(
-            Icons.Outlined.NotificationsActive,
-            contentDescription = null,
-            modifier = Modifier.size(96.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-    } else {
-        CircularWavyProgressIndicator(
-            modifier = Modifier.size(96.dp),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
-    }
+    CircularWavyProgressIndicator(
+        modifier = Modifier.size(96.dp),
+        color = MaterialTheme.colorScheme.primary,
+        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+    )
 
     Spacer(Modifier.height(40.dp))
 
@@ -135,7 +123,6 @@ private fun ProgressContent(state: InstallState, appName: String, onCancel: () -
     val statusText = when (state) {
         InstallState.Extracting -> stringResource(R.string.install_step_extracting)
         InstallState.Verifying -> stringResource(R.string.install_step_verifying)
-        InstallState.PendingUserAction -> stringResource(R.string.install_step_pending_user_action)
         else -> stringResource(R.string.install_step_installing)
     }
 
@@ -146,12 +133,9 @@ private fun ProgressContent(state: InstallState, appName: String, onCancel: () -
         modifier = Modifier.testTag(INSTALL_STATUS_TAG),
     )
 
-    // Show Cancel when the install is taking a while (Finalizing = Play Protect scan in background).
-    if (state == InstallState.Finalizing || state == InstallState.PendingUserAction) {
-        Spacer(Modifier.height(32.dp))
-        OutlinedButton(onClick = onCancel) {
-            Text(stringResource(R.string.install_cancel))
-        }
+    Spacer(Modifier.height(32.dp))
+    OutlinedButton(onClick = onCancel) {
+        Text(stringResource(R.string.install_cancel))
     }
 }
 
