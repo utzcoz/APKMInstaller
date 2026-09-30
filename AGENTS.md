@@ -51,7 +51,7 @@ app/src/main/kotlin/com/apkm/installer/
 
 ```
 app/src/test/          # JVM unit tests (ApkmParserTest, ParseApkmUseCaseTest)
-app/src/androidTest/   # Instrumentation tests (HomeScreenTest, PackageDetailScreenTest, InstallProgressScreenTest)
+app/src/androidTest/   # Instrumentation tests (HomeScreenTest, PackageDetailScreenTest, InstallProgressScreenTest, InstallFlowNavigationTest)
 app/src/screenshotTest/ # Compose preview screenshot tests (ScreenshotPreviews.kt)
 ```
 
